@@ -1,0 +1,89 @@
+.homepage-root {
+  background: #F9E0D9;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.homepage-title {
+  color: #6F1A07;
+}
+
+.homepage-header-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.homepage-courses-title {
+  color: #A8763E;
+  flex: 1;
+}
+
+.homepage-add-btn {
+  background: #6F1A07;
+  color: #FFF;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.homepage-courses-list {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.homepage-course-card {
+  background: #FFFFFF;
+  border: 2px solid #A8763E;
+  border-radius: 8px;
+  padding: 1rem;
+  min-width: 200px;
+  cursor: pointer;
+}
+
+.homepage-course-name {
+  color: #2B2118;
+}
+
+.homepage-course-date {
+  color: #6F1A07;
+  margin: 0;
+}
+
+.homepage-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(43,33,24,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.homepage-modal {
+  background: #FFF;
+  padding: 2rem;
+  border-radius: 12px;
+  min-width: 300px;
+}
+
+.homepage-modal-title {
+  color: #6F1A07;
+}
+
+.homepage-modal-close {
+  margin-top: 1rem;
+  background: #A8763E;
+  color: #FFF;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
