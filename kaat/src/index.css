@@ -5,26 +5,38 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color:#ffff;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
-
-.assignmentItem {
-  display: flex;
-  align-items: center;
+ul, h1, p, h2, h3 {
+  margin: 0;
+  padding: 0;
 }
-
-.course-page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+@font-face {
+  font-family: 'SF';
+  src:
+    url('../public/fonts/SF-Pro-Display-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
-.user-info-container {
-  padding: 2rem;
+@font-face {
+  font-family: 'SF';
+  src:
+    url('../public/fonts/SF-Pro-Display-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }
-.course-info-container {
-  padding: 2rem;
+@font-face {
+  font-family: 'SF';
+  src:
+    url('../public/fonts/SF-Pro-Display-Thin.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
 }

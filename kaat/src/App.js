@@ -8,17 +8,17 @@ export default function App() {
         {
             id: "42",
             name: "Intro to Testing",
+            term: "Spring 2025",
             assignments: [
               { id: "a1", title: "Test Assignment 1", dueDate: "2025-05-28", dueTime: "23:59" },
               { id: "a2", title: "Test Assignment 2", dueDate: "2025-05-28", dueTime: "23:59" },
             ],
         });
         
-        
     return (
         <BrowserRouter>
         <Routes>
-            {/* REAL ROUTES… */}
+            {/* REAL ROUTES*/}
 
             {/* === TEST === */}
             <Route
@@ -27,7 +27,7 @@ export default function App() {
                 <CoursePage
                 currentCourse={fakeCourse}
                 role="teacher"
-                user={{ id: "u1", name: "Alice" }}
+                user={{ id: "u1", name: "Kairat" }}
                 updateCourse={setFakeCourse}
                 />
             }
