@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
-import '../components_styling/homepage.css';
+import '../styles/homepage.css';
+import { useNavigate } from "react-router-dom";
 
 // Test data for courses
-const testCourses = [
-  { id: 'csc103', name: 'CSC 103', start: '2024-01-10', end: '2024-05-10', teacherId: 1, students: [2, 3] },
-  { id: 'csc106', name: 'CSC 106', start: '2024-01-10', end: '2024-05-10', teacherId: 1, students: [2] },
-  { id: 'csc105', name: 'CSC 105', start: '2024-01-10', end: '2024-05-10', teacherId: 2, students: [1, 3] },
-  { id: 'csc108', name: 'CSC 108', start: '2024-01-10', end: '2024-05-10', teacherId: 1, students: [3] },
-];
 
-const HomePage = ({ role, user }) => {
-  const [showAddModal, setShowAddModal] = useState(false);
 
+const HomePage = ({ role, user, coursesProp, setCurrentCourse }) => {
+    
+    const [showAddModal, setShowAddModal] = useState(false);
+    const navigate = useNavigate();
+    const handleSelectCourse = (course) => {
+        setCurrentCourse(course);
+        navigate(`/_test/course/${course.id}`);
+
+    }
   // Filter courses based on role
   const courses = role === 'teacher'
-    ? testCourses.filter(course => course.teacherId === user.id)
-    : testCourses.filter(course => course.students.includes(user.id));
+    ? coursesProp.filter(course => course.teacherId === user.id)
+    : coursesProp.filter(course => course.students.includes(user.id));
 
   return (
     <div className="homepage-root">
@@ -37,10 +39,10 @@ const HomePage = ({ role, user }) => {
           <div
             key={course.id}
             className="homepage-course-card"
+            onClick={() => {handleSelectCourse(course) }}
           >
             <h3 className="homepage-course-name">{course.name}</h3>
-            <p className="homepage-course-date">Start: {course.start}</p>
-            <p className="homepage-course-date">End: {course.end}</p>
+            <p className="homepage-course-date">Term: {course.term}</p>
           </div>
         ))}
       </div>

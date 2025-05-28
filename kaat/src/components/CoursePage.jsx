@@ -13,13 +13,13 @@ export default function CoursePage({
   const navigate = useNavigate();
   const [currentAssignment, setCurrentAssignment] = useState(null);
   const [editingAssignmentId, setEditingAssignmentId] = useState(null);
-  const [isEditingCourse, setIsEditingCourse] = useState(false);
+  const [isEditingCourse, setIsEditingCourse] = useState(false);  
   const [draftCourseName, setDraftCourseName] = useState(currentCourse.name);
   const [draftCourseTerm, setDraftCourseTerm] = useState(currentCourse.term);
   const [draftAssignment, setDraftAssignment] = useState(currentAssignment);
   const handleSelectAssignment = (assignment) => {
     setCurrentAssignment(assignment);
-    navigate(`/_test/course/${assignment.id}`);
+    navigate(`/_test/course/${currentCourse.id}/${assignment.id}`);
     setEditingAssignmentId(null);
   };
 
