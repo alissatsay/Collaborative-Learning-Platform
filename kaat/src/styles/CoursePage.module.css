@@ -1,0 +1,153 @@
+.coursePageWrapper {
+  display: flex;
+  flex-direction: column;
+  font-family: 'SF';
+}
+
+.coursePageHeader {
+  display: flex;
+  justify-content: space-between;
+  color: black;
+  padding: 0 1rem;
+  border-bottom: 2px solid #6f1a07;
+}
+
+.userInfoContainer {
+  padding: 2rem;
+}
+
+.courseInfoContainer {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  gap: 1rem;
+  width: 60%;
+  padding: 2rem;
+}
+
+.courseInfoContainer h1 {
+  margin: 0;
+  padding: 0;
+}
+
+.courseDesc {
+  margin-top: 0.3rem;
+}
+
+.courseTerm {
+  color: #555;
+}
+
+.courseTitleCont,
+.editingFieldsCont,
+.assignmentItem,
+.assignmentEditingContainer,
+.tableActionsItem {
+  display: flex;
+  align-items: center;
+}
+
+.courseTitleCont {
+  gap: 1rem;
+}
+
+.editingFieldsCont {
+  gap: 0.75rem;
+}
+
+.assignmentItem {
+  gap: 1rem;
+}
+
+.assignmentEditingContainer {
+  gap: 0.7rem;
+}
+
+.tableActionsItem {
+  gap: 0.5rem;
+}
+
+.courseTitleDelimiter {
+  font-family: 'Courier New', Courier, monospace;
+  color: #555;
+  font-weight: 300;
+  font-size: 36px;
+  width: 20px;
+}
+
+.iconCont {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25em;
+}
+
+.icon {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+}
+
+.assignmentsSection {
+  margin-top: 2rem;
+  padding: 2rem;
+}
+
+.assignmentsSection h2 {
+  margin: 0 0 1rem 1rem;
+}
+
+.assignmentsTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.assignmentsTable th,
+.assignmentsTable td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.assignmentsTable th {
+  font-weight: bold;
+  background-color: #f9f9f9;
+}
+
+.assignmentsTable input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.assignmentLinkBtn {
+  background: none;
+  border: none;
+  color: #0070f3;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+}
+
+.inputItem {
+  border-radius: 4px;
+  border: 1px solid;
+  font-family: 'SF';
+  font-size: 16px;
+}
+
+.termInput {
+  width: 88px;
+}
+
+.courseNameInput {
+  width: 222px;
+  font-size: 26px;
+}
+
+.tableAssignmentTitleItem {
+  height: 22px;
+  padding-left: 6px;
+}
