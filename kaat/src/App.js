@@ -1,7 +1,8 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import CoursePage from "./components/CoursePage";
 import AssignmentPage from "./components/AssignmentPage";
 import HomePage from "./components/HomePage";
+import AuthProvider from "./components/AuthProvider";
 import { useState } from 'react';
 
 export default function App() {
@@ -53,19 +54,27 @@ export default function App() {
     ];
     const [fakeCourse, setFakeCourse] = useState(null);
     const [currentCourse, setCurrentCourse] = useState(null);
-    
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [user, setUser] = useState(null);
     return (
         <BrowserRouter>
         <Routes>
             {/* REAL ROUTES*/}
 
             {/* === TEST === */}
+             <Route
+                path="/"
+                element={
+                    user ? <Navigate to={"/home"} replace />
+                    : <AuthProvider setIsLoggedIn={setIsLoggedIn} setUser={setUser} />
+                }
+            />
             <Route
-            path="/"
+            path="/home"
             element={
                 <HomePage
                 role="teacher"
-                user={{ id: 1, name: "Kairat" }}
+                user={{name: "Kairat Sadyrbekov", id: 1}}
                 coursesProp={coursesProp}
                 setCurrentCourse={setCurrentCourse}
                 />
@@ -77,7 +86,7 @@ export default function App() {
                 <CoursePage
                     currentCourse={currentCourse}
                     role="teacher"
-                    user={{ id: "u1", name: "Kairat" }}
+                    user={{name: "Kairat Sadyrbekov", id: 1}}
                     updateCourse={setFakeCourse}
                 />
             }

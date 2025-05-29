@@ -16,6 +16,7 @@ const HomePage = ({ role, user, coursesProp, setCurrentCourse }) => {
     }
   // Filter courses based on role
   const courses = role === 'teacher'
+  // WITH GOOGLEOAUTH IMPLEMENTATION, USER.ID IS WHATEVER GOOGLE RETURNS IN THE PAYLOAD, NOT teacherId = 1
     ? coursesProp.filter(course => course.teacherId === user.id)
     : coursesProp.filter(course => course.students.includes(user.id));
 
