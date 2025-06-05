@@ -7,7 +7,7 @@ export default function AddAssignmentModal({
   isOpen,
   onClose,
   courseId,
-  onCreate,        
+  onCreate,
 }) {
 
   const [students, setStudents] = useState([]);
@@ -24,7 +24,6 @@ export default function AddAssignmentModal({
   });
 
   const toLocalValue = isoString => (isoString ? isoString.replace(/Z$/, "") : "");
-  // USERS FETCHING
   useEffect(() => {
     if (isOpen && courseId) {
          setFormValues({

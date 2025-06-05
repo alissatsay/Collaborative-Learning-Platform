@@ -1,4 +1,3 @@
-// src/components/StudentSidebar.jsx
 import { useEffect, useState } from "react";
 import "../styles/StudentSidebar.css";
 
@@ -15,16 +14,15 @@ export default function StudentSidebar({
   const [error, setError] = useState(null);
   const [selectedGroupId, setSelGroup]   = useState(null);
 
-  /* helper: normalise various API shapes to an array of students */
   const pickStudents = (payload = {}) => {
     if (Array.isArray(payload)) return payload;
     if (payload.results)  return payload.results;
     if (payload.students) return payload.students;
-    if (payload.users)    return payload.users;
+    if (payload.users) return payload.users;
+    if (payload.members) return payload.members;
     return [];
   };
 
-  /* fetch groups + their students */
   useEffect(() => {
     let active = true;
 
@@ -32,14 +30,13 @@ export default function StudentSidebar({
       try {
         setLoading(true);
         setError(null);
-
         const gRes = await fetch(
           `http://127.0.0.1:8000/api/assignments/${assignmentId}/groups/`
         );
         if (!gRes.ok) throw new Error("Could not load groups");
 
         let raw = await gRes.json();
-        raw     = Array.isArray(raw) ? raw : raw.results || [];
+        raw = Array.isArray(raw) ? raw : raw.results || [];
         raw.sort((a, b) => a.id - b.id);
 
         const groupsWithStudents = await Promise.all(
@@ -71,20 +68,17 @@ export default function StudentSidebar({
     return () => (active = false);
   }, [assignmentId]);
 
-  /* choose which groups to show */
   const groupsToRender = role
-    ? groups                                 // teacher → all groups
+    ? groups
     : groups.filter((g) =>
         g.students.some((s) => s.id === currentUser.id)
-      );                                     // student → own group only
+      );
 
-  /* UI states */
   if (loading) return <aside className="sidebar">Loading…</aside>;
   if (error)   return <aside className="sidebar error">{error}</aside>;
   if (groupsToRender.length === 0)
     return <aside className="sidebar">No groups found.</aside>;
 
-  /* render */
   return (
     <aside className="sidebar">
       {groupsToRender.map((group, idx) => {

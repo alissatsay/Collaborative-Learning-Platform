@@ -112,6 +112,9 @@ class SubmissionView(viewsets.ModelViewSet):
 class CommentsView(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     queryset = AssignmentSubmissionComment.objects.all()
+    def perform_create(self, serializer):
+        uid = self.request.data.get("user")
+        serializer.save(user_id=uid)
 
 class SubmissionFileView(viewsets.ModelViewSet):
     serializer_class = SubmissionFileSerializer

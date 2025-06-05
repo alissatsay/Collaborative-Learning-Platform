@@ -1,30 +1,28 @@
-
 import React, { useState, useEffect } from "react";
 import "../styles/homepage.css";
 import { useNavigate } from "react-router-dom";
+import AddCourseModal from "./AddCourseModal";
 
 const TERM_OPTIONS = ["Fall", "Winter", "Spring"];
 const API_BASE = "http://127.0.0.1:8000/api/classes/";
 
 const getInviteExpiryDate = () => {
   const now = new Date();
-  now.setDate(now.getDate() + 14);          // 2 weeks
+  now.setDate(now.getDate() + 14);
   return now.toISOString();
 };
 
 function HomePage({ role, user, courses, setCourses, setCurrentCourse }) {
-  /* ───── normalize role once ───── */
   const roleStr = role ? "teacher" : "student";
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [loading, setLoading]           = useState(true);
-  const [error, setError]               = useState(null);
-  const [inviteLink, setInviteLink]     = useState("");
-  const [creating, setCreating]         = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [inviteLink, setInviteLink] = useState("");
+  const [creating, setCreating] = useState(false);
 
-  /* include `code` in the form */
   const [form, setForm] = useState({
-    code: "",                         // NEW
+    code: "",
     name: "",
     term: TERM_OPTIONS[0],
     year: new Date().getFullYear(),
@@ -34,13 +32,11 @@ function HomePage({ role, user, courses, setCourses, setCurrentCourse }) {
 
   const navigate = useNavigate();
 
-  /* ───── fetch courses on mount / when user changes ───── */
   useEffect(() => {
     if (!user?.id) return;
     setLoading(true);
 
-    const url =
-      roleStr === "teacher"
+    const url = roleStr === "teacher"
         ? `${API_BASE}?teacher=${user.id}`
         : `${API_BASE}?student=${user.id}`;
 
@@ -64,7 +60,6 @@ function HomePage({ role, user, courses, setCourses, setCurrentCourse }) {
     navigate(`/home/_test/course/${course.id}`);
   };
 
-  /* helper to derive term dates (unchanged) */
   const getTermDates = (term, year) => {
     if (term === "Fall")   return { start_date: `${year}-09-01`, end_date: `${year}-12-15` };
     if (term === "Winter") return { start_date: `${year}-01-06`, end_date: `${year}-03-14` };
@@ -88,7 +83,6 @@ function HomePage({ role, user, courses, setCourses, setCurrentCourse }) {
     });
   };
 
-  /* ───── create course ───── */
   const handleAddCourse = async (e) => {
     e.preventDefault();
     setCreating(true);
@@ -98,13 +92,13 @@ function HomePage({ role, user, courses, setCourses, setCurrentCourse }) {
     const { code, name, term, year, start_date, end_date } = form;
 
     const payload = {
-      code,                               // NEW
+      code,
       name,
       term,
       year: Number(year),
       start_date,
       end_date,
-      teacher: user.id,                   // adjust if backend expects teacher_id
+      teacher: user.id,
     };
 
     try {
@@ -114,7 +108,7 @@ function HomePage({ role, user, courses, setCourses, setCurrentCourse }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-        credentials: "include",          // keep cookies / session
+        credentials: "include",
       });
 
       if (!res.ok) {
@@ -126,12 +120,11 @@ function HomePage({ role, user, courses, setCourses, setCurrentCourse }) {
       const newCourse  = await res.json();
       console.log("POST success →", newCourse);
 
-      setCourses((prev) => [...prev, newCourse]); // optimistic add
+      setCourses((prev) => [...prev, newCourse]); 
 
-      /* generate invite link */
       const inviteCode = newCourse.invite_code || newCourse.id;
-      const expiry     = getInviteExpiryDate();
-      const link       = `${window.location.origin}/invite/${inviteCode}?expires=${encodeURIComponent(expiry)}`;
+      const expiry = getInviteExpiryDate();
+      const link = `${window.location.origin}/invite/${inviteCode}?expires=${encodeURIComponent(expiry)}`;
 
       setInviteLink(link);
     } catch (err) {
@@ -141,18 +134,14 @@ function HomePage({ role, user, courses, setCourses, setCurrentCourse }) {
     }
   };
 
-  const handleCopyLink = () => navigator.clipboard.writeText(inviteLink);
-
   const getFirstLastName = (name) => {
     if (!name) return "";
     const parts = name.split(" ");
     return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1]}` : name;
   };
 
-  /* ───── UI ───── */
   return (
     <div className="homepage-root">
-      {/* user info */}
       <div className="homepage-user-info">
         <h2>Welcome, {getFirstLastName(user.name)}</h2>
         <div className="homepage-user-details">
@@ -162,7 +151,6 @@ function HomePage({ role, user, courses, setCourses, setCurrentCourse }) {
         </div>
       </div>
 
-      {/* header row */}
       <div className="homepage-header-row">
         <h2 className="homepage-courses-title">Your Courses</h2>
         {roleStr === "teacher" && (
@@ -176,7 +164,6 @@ function HomePage({ role, user, courses, setCourses, setCurrentCourse }) {
         )}
       </div>
 
-      {/* courses list */}
       <div className="homepage-courses-list">
         {loading ? (
           <p>Loading courses…</p>
@@ -200,132 +187,21 @@ function HomePage({ role, user, courses, setCourses, setCurrentCourse }) {
         )}
       </div>
 
-      {/* ───── Add-Course Modal ───── */}
-      {showAddModal && (
-        <div className="homepage-modal-overlay">
-          <div className="homepage-modal">
-            <h2 className="homepage-modal-title">Add Course</h2>
-            <form onSubmit={handleAddCourse} className="homepage-modal-form">
-              <label>
-                Course Code
-                <input
-                  type="text"
-                  name="code"
-                  value={form.code}
-                  onChange={handleFormChange}
-                  required
-                />
-              </label>
-              <label>
-                Course Name
-                <input
-                  type="text"
-                  name="name"
-                  value={form.name}
-                  onChange={handleFormChange}
-                  required
-                />
-              </label>
-              <label>
-                Term
-                <select
-                  name="term"
-                  value={form.term}
-                  onChange={handleFormChange}
-                  required
-                >
-                  {TERM_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Year
-                <input
-                  type="number"
-                  name="year"
-                  value={form.year}
-                  min="2020"
-                  max="2100"
-                  onChange={handleFormChange}
-                  required
-                />
-              </label>
-              <label>
-                Start Date
-                <input
-                  type="date"
-                  name="start_date"
-                  value={form.start_date}
-                  onChange={handleFormChange}
-                  required
-                />
-              </label>
-              <label>
-                End Date
-                <input
-                  type="date"
-                  name="end_date"
-                  value={form.end_date}
-                  onChange={handleFormChange}
-                  required
-                />
-              </label>
-              <button
-                type="submit"
-                className="homepage-modal-submit"
-                disabled={creating}
-              >
-                {creating ? "Creating…" : "Create Course"}
-              </button>
-              {error && <p style={{ color: "red" }}>{error}</p>}
-            </form>
-
-            {inviteLink && (
-              <div className="homepage-invite-link">
-                <p>Invite Link (expires in 2 weeks):</p>
-                <input
-                  type="text"
-                  value={inviteLink}
-                  readOnly
-                  style={{ width: "100%" }}
-                />
-                <button
-                  onClick={handleCopyLink}
-                  className="homepage-modal-close"
-                >
-                  Copy Link
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={() => {
-                setShowAddModal(false);
-                setInviteLink("");
-                setForm({
-                  code: "",
-                  name: "",
-                  term: TERM_OPTIONS[0],
-                  year: new Date().getFullYear(),
-                  start_date: "",
-                  end_date: "",
-                });
-              }}
-              className="homepage-modal-close"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      <AddCourseModal
+          isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+          onCreate={(newCourse) => {
+            setCourses((prev) => [...prev, newCourse]);
+            setInviteLink(
+              `${window.location.origin}/invite/${
+                newCourse.invite_code || newCourse.id
+              }?expires=${encodeURIComponent(getInviteExpiryDate())}`
+            );
+          }}
+          userId={user.id}
+        />
     </div>
   );
 }
 
 export default HomePage;
-
-
-

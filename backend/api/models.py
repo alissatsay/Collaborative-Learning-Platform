@@ -75,7 +75,7 @@ class AssignmentSubmissionComment(models.Model):
         ('file', 'File'),
         ('general', 'General'),
     ]
-    comment_type = models.CharField(max_length=10, choices=type_choices)
+    comment_type = models.CharField(max_length=10, choices=type_choices, default="general")
     submission_file = models.ForeignKey(AssignmentSubmissionFile, on_delete=models.CASCADE, null=True)
     line_number = models.IntegerField(null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)

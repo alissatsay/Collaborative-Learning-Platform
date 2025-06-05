@@ -12,7 +12,14 @@ export default function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentAssignment, setCurrentAssignment] = useState(null);
     const [user, setUser] = useState(null);
+    const [authReady, setAuthReady] = useState(false);
+
     let endpoint;
+    useEffect(() => {
+        const saved = localStorage.getItem("myAppUser");
+        if (saved) setUser(JSON.parse(saved));
+        setAuthReady(true);
+    }, []);
     useEffect(() => {
         if (!user?.id) return;
     
@@ -31,6 +38,7 @@ export default function App() {
     // If the updatedCourse is currently “open” in CoursePage, update that too:
     setCurrentCourse(updatedCourse);
   };
+  if (!authReady) return null;
     return (
         <BrowserRouter>
         <Routes>
@@ -82,7 +90,7 @@ export default function App() {
             path="/_test/course/:courseId/:assignmentId"
             element={
                 user
-                ? <AssignmentPage currentCourse={currentCourse} role={user.is_teacher} user={user} />
+                ? <AssignmentPage currentCourse={currentCourse} setCurrentCourse={setCurrentCourse} role={user.is_teacher} user={user} />
                 : <Navigate to="/" replace />
             }
             />
