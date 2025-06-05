@@ -9,24 +9,19 @@ import axios from 'axios';
 export default function App() {
     const [courses, setCourses] = useState([]);
     const [currentCourse, setCurrentCourse] = useState(null);
-    const [isLoggedIn, setIsLoggedIn] = useState(true);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentAssignment, setCurrentAssignment] = useState(null);
-    const [user, setUser] = useState({"id": 16,"name": "Kairat","email": "sadyrbek@union.edu","is_teacher": false});
+    const [user, setUser] = useState(null);
     let endpoint;
-    if (user.is_teacher === true) {
-        endpoint = 'teacher';
-    } 
-    else {
-        endpoint = 'student';
-    }
     useEffect(() => {
-        if (user?.id) {
-            axios
-                .get(`http://127.0.0.1:8000/api/classes/?${endpoint}=${user.id}`)
-                .then(res => setCourses(res.data))
-                .catch(err => console.error(err))
-        }
-    }, [user])
+        if (!user?.id) return;
+    
+        endpoint = user.is_teacher ? "teacher" : "student";
+        axios
+          .get(`http://127.0.0.1:8000/api/classes/?${endpoint}=${user.id}`)
+          .then(r => setCourses(r.data))
+          .catch(console.error);
+      }, [user]);
     const updateCourse = (updatedCourse) => {
     // Replace the old course object in `courses`
     setCourses(prev => 
@@ -50,39 +45,46 @@ export default function App() {
                 }
             />
             <Route
-            path="/home"
-            element={
-                <HomePage
-                role={user.is_teacher}
-                user={user}
-                courses={courses}
-                setCurrentCourse={setCurrentCourse}
-                />
-            }
+                path="/home"
+                element={
+                    user            // render only when we HAVE a user
+                    ? (
+                        <HomePage
+                            role={user.is_teacher}
+                            user={user}
+                            courses={courses}
+                            setCourses={setCourses}
+                            setCurrentCourse={setCurrentCourse}
+                        />
+                        )
+                    : <Navigate to="/" replace />   // or just null
+                }
             />
             <Route
             path="/home/_test/course/:courseId"
             element={
-                <CoursePage
-                    currentCourse={currentCourse}
-                    setCurrentCourse={setCurrentCourse}
-                    currentAssignment={currentAssignment}
-                    setCurrentAssignment={setCurrentAssignment}
-                    role={user.is_teacher}
-                    user={user}
-                    updateCourse={updateCourse}
-                />
+                user
+                ? (
+                    <CoursePage
+                        currentCourse={currentCourse}
+                        setCurrentCourse={setCurrentCourse}
+                        currentAssignment={currentAssignment}
+                        setCurrentAssignment={setCurrentAssignment}
+                        role={user.is_teacher}
+                        user={user}
+                        updateCourse={updateCourse}
+                    />
+                    )
+                : <Navigate to="/" replace />
             }
             />
-
             <Route
             path="/_test/course/:courseId/:assignmentId"
             element={
-                    <AssignmentPage 
-                        role={user.is_teacher}
-                        user={user}
-                />
-                }
+                user
+                ? <AssignmentPage currentCourse={currentCourse} role={user.is_teacher} user={user} />
+                : <Navigate to="/" replace />
+            }
             />
         </Routes>
         </BrowserRouter>

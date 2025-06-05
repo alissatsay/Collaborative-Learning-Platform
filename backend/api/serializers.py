@@ -43,7 +43,7 @@ class AssignmentGroupSerializer(serializers.ModelSerializer):
 class CommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = AssignmentSubmissionComment
-        fields = ('id', 'submission', 'submission_file', 'line_number', 'user', 'comment')
+        fields = ('id', 'submission', 'submission_file', 'line_number', 'user', 'comment', 'start_offset', 'end_offset', 'created_at', 'updated_at')
 
 class SubmissionFileSerializer(serializers.ModelSerializer):
     class Meta:

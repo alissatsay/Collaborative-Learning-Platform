@@ -22,7 +22,7 @@ class Class(models.Model):
     end_date = models.DateField()
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='teacher_class_set')
     students = models.ManyToManyField(User, related_name='student_class_set')
-        
+
     def __str__(self):
         return f"{self.code} {self.name} {self.term}"
 
@@ -34,7 +34,7 @@ class Assignment(models.Model):
     release_date = models.DateTimeField()
     submission_deadline = models.DateTimeField()
     commenting_deadline = models.DateTimeField()
-
+    
     def __str__(self):
         return self.name
 
@@ -80,6 +80,10 @@ class AssignmentSubmissionComment(models.Model):
     line_number = models.IntegerField(null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     comment = models.TextField()
+    start_offset = models.PositiveIntegerField(null=True, blank=True)
+    end_offset = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Comment on submission {self.submission_id}"

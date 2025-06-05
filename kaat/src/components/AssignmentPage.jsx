@@ -1,400 +1,464 @@
-// src/components/AssignmentPage.jsx
-import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+/* ────────────────────────────────────────────────
+   src/components/AssignmentPage.jsx
+   drop-in replacement
+   ──────────────────────────────────────────────── */
+
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback
+} from "react";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 import StudentSidebar from "./StudentSidebar";
 import "../styles/AssignmentPage.css";
+import styles from "../styles/CoursePage.module.css";
 
-export default function AssignmentPage({ user, role }) {
-  const { courseId, assignmentId } = useParams();
-  const navigate = useNavigate();
-
+export default function AssignmentPage({ currentCourse, user, role }) {
+  const { assignmentId } = useParams();
+  
+  /* ────────── state ────────── */
+  const [currentStudent, setCurrentStudent] = useState(null);
   const [assignment, setAssignment] = useState(null);
+
   const [submission, setSubmission] = useState(null);
   const [submissionFile, setSubmissionFile] = useState(null);
+
   const [fileContent, setFileContent] = useState("");
   const [fileName, setFileName] = useState("");
-  const [comments, setComments] = useState([]);
-  const [selectedText, setSelectedText] = useState("");
-  const [lineNumbers, setLineNumbers] = useState("");
-  const [selectedOffsets, setSelectedOffsets] = useState(null);
-  const [showCommentInput, setShowCommentInput] = useState(false);
-  const [commentText, setCommentText] = useState("");
-  const [highlights, setHighlights] = useState([]); // ← keep track of all highlight ranges
 
-  const codeContainerRef = useRef(null);
+  const [selectedStudentId, setSelStudent] = useState(null);
 
-  // ── Utility to escape HTML before injecting via dangerouslySetInnerHTML ──
-  function escapeHTML(str) {
-    return str
+  const [comments, setComments] = useState([]);          // persisted
+  const [highlights, setHighlights] = useState([]);      // [{start,end,commentId}]
+
+  // pending selection (not yet posted)
+  const [selection, setSelection] = useState(null);      // {start,end,text,line,label}
+  const [draft, setDraft] = useState("");
+
+  const [isUplodaed, setIsUploaded] = useState(false);
+
+  const codeRef = useRef(null);
+
+  /* ────────── helpers ────────── */
+
+  const escape = (s) =>
+    s
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
-  }
 
-  // ── Walk text nodes under `root` until callback(node) returns true ──
-  function walkTextNodes(root, callback) {
-    let walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
-    let node;
-    while ((node = walker.nextNode())) {
-      if (callback(node) === true) {
-        break;
+  /** Build innerHTML with marks and CSS line numbers  */
+  const buildHTML = useCallback(() => {
+    if (!fileContent) return "";
+    const lines = fileContent.split("\n");
+    let globalIdx = 0;
+    const htmlLines = lines.map((rawLine) => {
+      let lineHTML = "";
+      let local = 0;
+
+      // walk across the line, slicing out every overlap with a highlight
+      const sliceUntil = (absIdx) =>
+        highlights
+          .filter((h) => h.start > absIdx)
+          .reduce(
+            (m, h) => Math.min(m, h.start - globalIdx),
+            rawLine.length
+          );
+
+      while (local < rawLine.length) {
+        // if current absolute char is inside a highlight
+        const mark = highlights.find(
+          (h) => h.start <= globalIdx + local && h.end > globalIdx + local
+        );
+        if (mark) {
+          const stop = Math.min(
+            rawLine.length,
+            mark.end - globalIdx
+          );
+          const snippet = escape(rawLine.slice(local, stop));
+          const attr = mark.commentId
+            ? `data-comment-id="${mark.commentId}"`
+            : "data-temp";
+          lineHTML += `<mark class="code-highlight" ${attr}>${snippet}</mark>`;
+          local = stop;
+        } else {
+          const stop = sliceUntil(globalIdx + local);
+          lineHTML += escape(rawLine.slice(local, stop));
+          local = stop;
+        }
       }
-    }
-  }
+      globalIdx += rawLine.length + 1; // +1 for “\n”
+      return `<span class="code-line">${lineHTML}</span>`;
+    });
 
-  // ── Given our `codeContainerRef`, find the absolute start/end indices of the user's selection ──
-  function getSelectionOffsets() {
+    return `<pre class="code-block">${htmlLines.join("\n")}</pre>`;
+  }, [fileContent, highlights]);
+
+  /** Skip line-number nodes while counting characters */
+  const computeOffsets = () => {
     const sel = window.getSelection();
     if (!sel || sel.isCollapsed) return null;
     const range = sel.getRangeAt(0);
+    const pre = codeRef.current?.querySelector("pre.code-block");
+    if (!pre || !pre.contains(range.startContainer)) return null;
 
-    let cumulative = 0;
-    let startIndex = -1,
-      endIndex = -1;
-
-    // Find startIndex
-    walkTextNodes(codeContainerRef.current, (textNode) => {
-      if (textNode === range.startContainer) {
-        startIndex = cumulative + range.startOffset;
-        return true;
-      } else {
-        cumulative += textNode.textContent.length;
+    let start = 0;
+    const walker = document.createTreeWalker(pre, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      if (node.parentElement.classList.contains("code-line-number")) continue; // skip numbers
+      if (node === range.startContainer) {
+        start += range.startOffset;
+        break;
       }
-      return false;
-    });
-
-    // Find endIndex (another full walk)
-    cumulative = 0;
-    walkTextNodes(codeContainerRef.current, (textNode) => {
-      if (textNode === range.endContainer) {
-        endIndex = cumulative + range.endOffset;
-        return true;
-      } else {
-        cumulative += textNode.textContent.length;
-      }
-      return false;
-    });
-
-    if (startIndex >= 0 && endIndex >= 0 && endIndex > startIndex) {
-      return { start: startIndex, end: endIndex };
+      start += node.textContent.length;
     }
-    return null;
-  }
+    let end = start + sel.toString().length;
+    if (fileContent[end] === "\n") end += 1; // keep newline inside mark
+    if (start > end) [start, end] = [end, start]; // reversed selection
+    return { start, end };
+  };
 
-  // ── When user releases the mouse, see if they highlighted something ──
+  /** derive @ Line label */
+  const lineLabelFromOffsets = (s, e) => {
+    const lineStart = fileContent.slice(0, s).split("\n").length;
+    const lineEnd = fileContent.slice(0, e).split("\n").length;
+    return lineStart === lineEnd
+      ? `Line ${lineStart}`
+      : `Lines ${lineStart}–${lineEnd}`;
+  };
+
+  /* ────────── events ────────── */
+
+  // user selects text
   const handleMouseUp = () => {
-    const offsets = getSelectionOffsets();
-    if (!offsets) {
-      setShowCommentInput(false);
-      return;
-    }
-    const { start, end } = offsets;
-    const selText = fileContent.slice(start, end);
-    if (!selText) {
-      setShowCommentInput(false);
-      return;
-    }
+    const off = computeOffsets();
+    if (!off) return;
+    const text = fileContent.slice(off.start, off.end);
+    if (!text.trim()) return;
 
-    setSelectedText(selText);
-    setSelectedOffsets({ start, end });
-
-    // Compute line numbers (optional UI)
-    const before = fileContent.slice(0, start);
-    const startLine = before.split("\n").length;
-    const linesSelected = selText.split("\n").length;
-    const lineLabel =
-      linesSelected === 1
-        ? `Line ${startLine}`
-        : `Lines ${startLine}-${startLine + linesSelected - 1}`;
-    setLineNumbers(lineLabel);
-
-    setShowCommentInput(true);
+    setHighlights((prev) => [
+      ...prev.filter((h) => h.commentId !== null), // drop prior temp
+      { start: off.start, end: off.end, commentId: null }
+    ]);
+    setSelection({
+      ...off,
+      text,
+      label: lineLabelFromOffsets(off.start, off.end)
+    });
+    setDraft("");
   };
 
-  // ── File‐picker handler: read the file as text ──
-  const handleFileChange = (e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    setFileName(f.name);
-
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setFileContent(ev.target.result);
-      // Clear any old highlights/comments if you want:
-      // setHighlights([]);
-      // setComments([]);
-    };
-    reader.readAsText(f);
+  // click on persisted mark
+  const handleMarkClick = (e) => {
+    const mark = e.target.closest("mark.code-highlight");
+    if (!mark || mark.dataset.temp !== undefined) return;
+    const cid = mark.dataset.commentId;
+    const row = document.getElementById(`comment-${cid}`);
+    if (row) {
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      row.classList.add("highlighted-comment");
+      mark.classList.add("code-highlight-pulse");
+      setTimeout(() => {
+        row.classList.remove("highlighted-comment");
+        mark.classList.remove("code-highlight-pulse");
+      }, 1500);
+    }
   };
 
-  // ── Submit (or update) the file to your backend ──
-  const handleSubmitFile = async () => {
+  const handleAddComment = async () => {
+    if (!selection || !draft.trim()) return;
     try {
+      /* ensure a submission and file exist */
       let subId = submission?.id;
       if (!subId) {
-        // create a new AssignmentSubmission first
-        const respSub = await axios.post(`http://127.0.0.1:8000/api/submit/`, {
+        const s = await axios.post("http://127.0.0.1:8000/api/submit/", {
           assignment: Number(assignmentId),
-          user: user.id,
+          user: Number(user.id)
         });
-        subId = respSub.data.id;
-        setSubmission(respSub.data);
+        subId = s.data.id;
+        setSubmission(s.data);
+      }
+      let fId = submissionFile?.id;
+      if (!fId) {
+        const f = await axios.post("http://127.0.0.1:8000/api/addfile/", {
+          name: fileName || "code.txt",
+          submission: Number(subId),
+          content: fileContent
+        });
+        fId = f.data.id;
+        setSubmissionFile(f.data);
       }
 
-      // now upload the file contents
-      const respFile = await axios.post(`http://127.0.0.1:8000/api/addfile/`, {
-        name: fileName,
-        submission: subId,
-        content: fileContent,
-      });
-      setSubmissionFile(respFile.data);
+      const firstLine = fileContent
+        .slice(0, selection.start)
+        .split("\n").length;
 
-      // re‐fetch comments (the backend typically returns them inside the SubmissionSerializer)
-      const updated = await axios.get(
-        `http://127.0.0.1:8000/api/assignments/${assignmentId}/submissions/?student=${user.id}`
-      );
-      if (Array.isArray(updated.data) && updated.data.length > 0) {
-        setSubmission(updated.data[0]);
-        setComments(updated.data[0].comments || []);
-      }
-
-      alert("File uploaded successfully!");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to upload file");
-    }
-  };
-
-  // ── When the user clicks “Add Comment” ──
-  const handleAddComment = async () => {
-    if (!commentText.trim() || !submissionFile || !selectedOffsets) return;
-    try {
-      const resp = await axios.post(`http://127.0.0.1:8000/api/addcomment/`, {
-        submission: submission.id,
-        submission_file: submissionFile.id,
-        line_number: Number(lineNumbers.replace(/^Lines? (\d+).*/, "$1")) || 1,
-        user: user.id,
-        comment: commentText.trim(),
+      const resp = await axios.post("http://127.0.0.1:8000/api/addcomment/", {
+        submission: Number(subId),
+        submission_file: Number(fId),
+        user: Number(user.id),
+        comment: draft.trim(),
+        line_number: Number(firstLine),
+        start_offset: Number(selection.start),
+        end_offset: Number(selection.end)
       });
 
-      // 1) Add the fresh comment into `comments`
-      setComments((prev) => [
-        ...prev,
-        {
-          id: resp.data.id,
-          user: { id: user.id, name: user.name },
-          comment: resp.data.comment,
-          line_number: resp.data.line_number,
-          submission_file: resp.data.submission_file,
-        },
-      ]);
-
-      // 2) Also store the highlight range in `highlights`
-      setHighlights((prev) => [
-        ...prev,
-        {
-          start: selectedOffsets.start,
-          end: selectedOffsets.end,
-          commentId: resp.data.id,
-        },
-      ]);
-
-      // clear selection state
-      setCommentText("");
-      setSelectedText("");
-      setSelectedOffsets(null);
-      setShowCommentInput(false);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to add comment");
-    }
-  };
-
-  // ── When the user deletes a comment from the right‐hand panel ──
-  const handleDeleteComment = async (commentId) => {
-    try {
-      await axios.delete(`http://127.0.0.1:8000/api/comments/${commentId}/`);
-      // remove it from the comments array
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-      // also remove its highlight from `highlights`
-      setHighlights((prev) => prev.filter((h) => h.commentId !== commentId));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to delete comment");
-    }
-  };
-
-  // ── Build a single HTML string with <mark> tags around each highlight range ──
-  function getHighlightedHTML() {
-    if (!fileContent) return "";
-
-    // 1) Sort by start so tags nest in order
-    const sorted = [...highlights].sort((a, b) => a.start - b.start);
-    let lastIndex = 0;
-    const pieces = [];
-
-    sorted.forEach(({ start, end }) => {
-      if (lastIndex < start) {
-        pieces.push(escapeHTML(fileContent.slice(lastIndex, start)));
-      }
-      pieces.push(
-        `<mark class="code-highlight">${escapeHTML(
-          fileContent.slice(start, end)
-        )}</mark>`
+      const newC = resp.data;
+      setComments((p) => [...p, newC]);
+      setHighlights((p) =>
+        p.map((h) =>
+          h.commentId === null ? { ...h, commentId: newC.id } : h
+        )
       );
-      lastIndex = end;
+
+      setSelection(null);
+      setDraft("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to add comment (400). Check the console for details.");
+    }
+  };
+
+  /* file choose & upload */
+  const chooseFile = (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    setIsUploaded(false)
+    setFileName(f.name);
+    const r = new FileReader();
+    r.onload = (ev) => setFileContent(ev.target.result);
+    r.readAsText(f);
+  };
+
+  /* submit file if needed */
+  const uploadFile = async () => {
+    if (!fileContent) return;
+    let subId = submission?.id;
+    if (!subId) {
+      const s = await axios.post("http://127.0.0.1:8000/api/submit/", {
+        assignment: assignmentId,
+        user: user.id
+      });
+      subId = s.data.id;
+      setSubmission(s.data);
+    }
+    await axios.post("http://127.0.0.1:8000/api/addfile/", {
+      name: fileName || "code.txt",
+      submission: subId,
+      content: fileContent
     });
-    if (lastIndex < fileContent.length) {
-      pieces.push(escapeHTML(fileContent.slice(lastIndex)));
-    }
-
-    // 2) Now insert line numbers by splitting on '\n'
-    const joined = pieces.join("");
-    const withLineNumbers = joined
-      .split("\n")
-      .map((lineText, idx) => {
-        // idx to lineNumber = idx+1
-        return `<span class="line-number">${idx + 1}</span> ${lineText ||
-          "&nbsp;"}\n`;
-      })
-      .join("");
-
-    return `<pre class="code-block">${withLineNumbers}</pre>`;
-  }
-
-  // ── On mount: fetch assignment + existing submission + comments ──
+    setIsUploaded(true);
+  };
   useEffect(() => {
-    axios
-      .get(`http://127.0.0.1:8000/api/assignments/${assignmentId}/`)
-      .then((r) => setAssignment(r.data))
-      .catch(console.error);
+      if (!submissionFile) return;
+      setComments([]);   
+      setHighlights([]);  
+      setSelection(null);  
+    }, [submissionFile?.id]);
+  /* delete comment */
+  const deleteComment = async (cid) => {
+    await axios.delete(`http://127.0.0.1:8000/api/addcomment/${cid}/`);
+    setComments((p) => p.filter((c) => c.id !== cid));
+    setHighlights((p) => p.filter((h) => h.commentId !== cid));
+  };
 
+  /* ────────── data fetch ────────── */
+  useEffect(() => {
+    // 1) pick either the clicked student or the logged-in user
+    const studentId = selectedStudentId || user.id;
+    axios.get(`http://127.0.0.1:8000/api/assignments/${assignmentId}/`).then((r) => setAssignment(r.data));
+
+    // 2) clear whatever was here before
+    setSubmission(null);
+    setSubmissionFile(null);
+    setFileName("");
+    setFileContent("");
+    setIsUploaded(false);
+    setComments([]);
+    setHighlights([]);
+    setSelection(null);
+
+    // 3) now fetch that student’s submission
     axios
       .get(
-        `http://127.0.0.1:8000/api/assignments/${assignmentId}/submissions/?student=${user.id}`
+        `http://127.0.0.1:8000/api/assignments/${assignmentId}/submissions/?student=${studentId}`
       )
       .then((r) => {
-        if (Array.isArray(r.data) && r.data.length > 0) {
+        if (Array.isArray(r.data) && r.data.length) {
           const sub = r.data[0];
           setSubmission(sub);
-          if (sub.files && sub.files.length > 0) {
-            setSubmissionFile(sub.files[0]);
-            setFileContent(sub.files[0].content);
-            // pre-populate existing comments and their highlights
-            setComments(sub.comments || []);
-            // If you want highlights from existing comments, you would have needed
-            // to store each comment’s (start,end) somewhere. For simplicity, only new ones show.
+
+          if (sub.files?.length) {
+            const f = sub.files[0];
+            setSubmissionFile(f);
+            setFileName(f.name);
+            setFileContent(f.content);
+            setIsUploaded(true);
           }
         }
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(
+          `Failed to load submission for student ${studentId}`,
+          err
+        );
+      });
+  }, [assignmentId, user.id, selectedStudentId]);
+  useEffect(() => {
+    axios.get(`http://127.0.0.1:8000/api/assignments/${assignmentId}/`).then((r) => setAssignment(r.data));
 
-    // Fetch groups etc. if you need StudentSidebar to populate.
+    axios
+      .get(`http://127.0.0.1:8000/api/assignments/${assignmentId}/submissions/?student=${user.id}`)
+      .then((r) => {
+        if (Array.isArray(r.data) && r.data.length) {
+          const sub = r.data[0];
+          setSubmission(sub);
+          if (sub.files?.length) {
+            const f = sub.files[0];
+            setSubmissionFile(f);
+            setFileName(f.name);
+            setFileContent(f.content); // will trigger next effect
+            setIsUploaded(true);
+          }
+        }
+      });
   }, [assignmentId, user.id]);
 
+  /* build persisted highlights after fileContent appears */
+  useEffect(() => {
+    if (!fileContent || !submission) return;
+    queueMicrotask(() => {
+      const persisted = (submission.comments || [])
+        .filter((c) => c.start_offset != null && c.end_offset != null)
+        .map((c) => ({
+          start: c.start_offset,
+          end: c.end_offset,
+          commentId: c.id
+        }));
+      setHighlights(persisted);
+      setComments(submission.comments || []);
+    });
+  }, [fileContent, submission]);
+
+  if (!assignment) return <p>Loading…</p>;
+
+  /* render line label helper */
+  const label = (c) =>
+    c.start_offset == null
+      ? c.line_number
+        ? `@ Line ${c.line_number}`
+        : ""
+      : lineLabelFromOffsets(c.start_offset, c.end_offset);
+
   return (
-    <div className="assignment-page-container">
-      <div className="assignment-page-header">
-        <button
-          className="back-button"
-          onClick={() => navigate(`/home/_test/course/${courseId}`)}
-        >
-          ← Back to Course
-        </button>
-        <h2>{assignment ? assignment.name : "Loading…"}</h2>
-      </div>
-
-      <div className="assignment-page-body">
-        {/* ─── LEFT PANEL ─── */}
-        <div className="left-panel">
-          <div className="file-upload-section">
-            <input type="file" onChange={handleFileChange} />
-            {fileName && <p>Selected: <b>{fileName}</b></p>}
-            <button
-              onClick={handleSubmitFile}
-              disabled={!fileContent}
-              className="submit-file-button"
-            >
-              Upload / Submit File
-            </button>
+    <div className="parent">
+      <header className={styles.coursePageHeader}>
+          <div className={styles.courseInfoContainer}>
+              <h1>{currentCourse.name}</h1>
+              <h1 className={styles.courseTitleDelimiter}>|</h1>
+              <p className={styles.courseTerm}>
+                {currentCourse.term}
+              </p>
+              <p className={styles.courseTerm}>
+                {currentCourse.year}
+              </p>
           </div>
+          <div className={styles.userInfoContainer}>
+            <h1>{user.name}</h1>
+          </div>
+      </header>
+      <div className="assignment-page-container">
+      
+      <div className="assignment-page-body">
+        <aside className="sidebar-column">
+          <StudentSidebar 
+          assignmentId={assignmentId} 
+          setCurrentStudent={setCurrentStudent}
+          currentUser={user}
+          role={role}
+          selectedStudentId={selectedStudentId}
+          setSelStudent={setSelStudent}
+          />
+        </aside>
 
-          {fileContent && (
+        <div className="code-column">
+          <h2>{assignment.name}</h2>
+          {selectedStudentId === user.id && (
+            <div className="file-upload-section">
+              <input type="file" onChange={chooseFile} />
+              <button onClick={uploadFile} disabled={!fileContent || isUplodaed}>
+                Submit
+              </button>
+          </div>
+          )}
+         
+
+          {isUplodaed && (
             <div
+              ref={codeRef}
               className="code-preview-container"
               onMouseUp={handleMouseUp}
-              ref={codeContainerRef}
-            >
-              {/* Instead of manually mapping lines here, we render a single <div> whose innerHTML is getHighlightedHTML() */}
-              <div
-                dangerouslySetInnerHTML={{ __html: getHighlightedHTML() }}
-              />
-            </div>
+              onClick={handleMarkClick}
+              dangerouslySetInnerHTML={{ __html: buildHTML() }}
+            />
           )}
 
-          {showCommentInput && (
+          {selection && (
             <div className="comment-input-container">
               <p>
-                <b>Comment on:</b> <em>{lineNumbers}</em>
+                <b>{selection.label}</b>
               </p>
-              <div className="highlighted-text-preview">
-                <pre>{selectedText}</pre>
-              </div>
+              <pre className="highlighted-text-preview">
+                {selection.text}
+              </pre>
               <textarea
                 rows={3}
-                placeholder="Type your comment…"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Type comment…"
               />
-              <button
-                onClick={handleAddComment}
-                className="add-comment-button"
-              >
-                Add Comment
-              </button>
+              <button onClick={handleAddComment}>Add</button>
             </div>
           )}
         </div>
 
-        {/* ─── RIGHT PANEL ─── */}
-        <div className="right-panel">
-          <StudentSidebar
-            assignmentId={assignmentId}
-            // … any props you already had
-          />
+        <div className="comments-column">
+          <h4>Comments</h4>
+          {comments.length === 0 && <p>No comments yet.</p>}
 
-          <div className="comments-list-container">
-            <h4>Comments</h4>
-            {comments.length === 0 ? (
-              <p>No comments yet.</p>
-            ) : (
-              <ul className="comments-list">
-                {comments
-                  .slice()
-                  .sort((a, b) => a.line_number - b.line_number)
-                  .map((c) => (
-                    <li key={c.id} className="comment-item">
-                      <div className="comment-header">
-                        <strong>{c.user.name}</strong> @ Line{" "}
-                        {c.line_number}
-                      </div>
-                      <div className="comment-body">{c.comment}</div>
-                      <button
-                        className="delete-comment-button"
-                        onClick={() => handleDeleteComment(c.id)}
-                      >
-                        🗑
-                      </button>
-                    </li>
-                  ))}
-              </ul>
-            )}
-          </div>
+          <ul className="comments-list">
+            {comments
+              .slice()
+             .sort((a, b) => {
+                const la =
+                  a.start_offset != null
+                    ? fileContent.slice(0, a.start_offset).split("\n").length
+                    : a.line_number || 10_000;
+                const lb =
+                  b.start_offset != null
+                    ? fileContent.slice(0, b.start_offset).split("\n").length
+                    : b.line_number || 10_000;
+                return la - lb;
+              })
+              .map((c) => (
+                <li key={c.id} id={`comment-${c.id}`}>
+                  <div className="comment-header">
+                    <strong>{c.user.name}</strong> {label(c)}
+                  </div>
+                  <div>{c.comment}</div>
+                  <button onClick={() => deleteComment(c.id)}>🗑</button>
+                </li>
+              ))}
+          </ul>
         </div>
       </div>
     </div>
+    </div>
+    
   );
 }

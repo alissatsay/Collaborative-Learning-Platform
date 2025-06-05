@@ -60,9 +60,7 @@ export default function CoursePage({
         setCurrentCourse(courseRes.data);
         setAssignments(assignmentsRes.data);
 
-        // For each assignment, fetch this user’s submission (if any)
         const assignmentIds = assignmentsRes.data.map((a) => a.id);
-        // Build an array of GET calls:
         const submissionCalls = assignmentIds.map((aid) =>
           axios.get(
             `http://127.0.0.1:8000/api/assignments/${aid}/submissions/?student=${user.id}`
@@ -72,15 +70,12 @@ export default function CoursePage({
         return Promise.all(submissionCalls);
       })
       .then((submissionsArr) => {
-        // submissionsArr is an array of axios responses, in assignment order
         const subMap = {};
         submissionsArr.forEach((resp) => {
-          // resp.data is either [ submissionObject ] or []
           const data = Array.isArray(resp.data) ? resp.data[0] : resp.data;
           if (data) {
             subMap[data.id] = data;
           }
-          // if arr.length === 0, that assignment has no submission → leave subMap[assignmentId] undefined
         });
 
         setSubmissions(subMap);
@@ -404,12 +399,6 @@ export default function CoursePage({
 
       </section>
 
-      {currentAssignment && role === true && editingAssignmentId && (
-        <EditAssignments
-          currentAssignment={currentAssignment}
-          setEditingAssignmentId={setEditingAssignmentId}
-        />
-      )}
       <AddAssignmentModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}

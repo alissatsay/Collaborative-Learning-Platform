@@ -1,23 +1,30 @@
+// src/components/StudentSidebar.jsx
 import { useEffect, useState } from "react";
 import "../styles/StudentSidebar.css";
 
-export default function StudentSidebar({ assignmentId, setCurrentStudent }) {
-  const [groups, setGroups]         = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState(null);
-  const [selectedStudentId, setSelStudent] = useState(null);
-  const [selectedGroupId, setSelGroup]     = useState(null);
+export default function StudentSidebar({
+  assignmentId,
+  setCurrentStudent,
+  currentUser,
+  role,
+  selectedStudentId,
+  setSelStudent,
+}) {
+  const [groups, setGroups]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedGroupId, setSelGroup]   = useState(null);
 
+  /* helper: normalise various API shapes to an array of students */
   const pickStudents = (payload = {}) => {
     if (Array.isArray(payload)) return payload;
-
-    if (payload.results) return payload.results;
+    if (payload.results)  return payload.results;
     if (payload.students) return payload.students;
     if (payload.users)    return payload.users;
-
     return [];
   };
 
+  /* fetch groups + their students */
   useEffect(() => {
     let active = true;
 
@@ -32,8 +39,7 @@ export default function StudentSidebar({ assignmentId, setCurrentStudent }) {
         if (!gRes.ok) throw new Error("Could not load groups");
 
         let raw = await gRes.json();
-        raw = Array.isArray(raw) ? raw : raw.results || []; 
-
+        raw     = Array.isArray(raw) ? raw : raw.results || [];
         raw.sort((a, b) => a.id - b.id);
 
         const groupsWithStudents = await Promise.all(
@@ -47,9 +53,8 @@ export default function StudentSidebar({ assignmentId, setCurrentStudent }) {
             if (!sRes.ok)
               throw new Error(`Could not load students for group ${grp.id}`);
 
-            const payload = await sRes.json();
+            const payload  = await sRes.json();
             const students = pickStudents(payload);
-
             return { ...grp, students };
           })
         );
@@ -66,12 +71,23 @@ export default function StudentSidebar({ assignmentId, setCurrentStudent }) {
     return () => (active = false);
   }, [assignmentId]);
 
+  /* choose which groups to show */
+  const groupsToRender = role
+    ? groups                                 // teacher → all groups
+    : groups.filter((g) =>
+        g.students.some((s) => s.id === currentUser.id)
+      );                                     // student → own group only
+
+  /* UI states */
   if (loading) return <aside className="sidebar">Loading…</aside>;
   if (error)   return <aside className="sidebar error">{error}</aside>;
+  if (groupsToRender.length === 0)
+    return <aside className="sidebar">No groups found.</aside>;
 
+  /* render */
   return (
     <aside className="sidebar">
-      {groups.map((group, idx) => {
+      {groupsToRender.map((group, idx) => {
         const groupSelected = selectedGroupId === group.id;
 
         return (
@@ -115,82 +131,3 @@ export default function StudentSidebar({ assignmentId, setCurrentStudent }) {
     </aside>
   );
 }
-
-
-
-// // // // // // // // // // // // // //
-// StudentSidebar.jsx  (mock-data version)
-// import { useState } from 'react';
-// import '../styles/StudentSidebar.css';
-
-// const MOCK_GROUPS = [
-//   {
-//     id: 1,
-//     students: [
-//       { id: 11, name: 'Alice Johnson' },
-//       { id: 12, name: 'Bruno Diaz' },
-//       { id: 13, name: 'Carla Ng' },
-//     ],
-//   },
-//   {
-//     id: 2,
-//     students: [
-//       { id: 21, name: 'Diego Patel' },
-//       { id: 22, name: 'Evelyn Zhang' },
-//     ],
-//   },
-//   {
-//     id: 3,
-//     students: [],                          // empty group example
-//   },
-// ];
-
-// export default function StudentSidebar({ setCurrentStudent /* assignmentId ⟵ still accepted but unused */ }) {
-//   const [groups] = useState(MOCK_GROUPS);   // never undefined
-//   const [selectedStudentId, setSelectedStudentId] = useState(null);
-//   const [selectedGroupId,   setSelectedGroupId]   = useState(null);
-
-//   return (
-//     <aside className="sidebar">
-//       {groups.map((group, idx) => {
-//         const groupSelected = selectedGroupId === group.id;
-
-//         return (
-//           <section
-//             key={group.id}
-//             className={`group ${groupSelected ? 'selected' : ''}`}
-//           >
-//             <h3 className="group-title">Group {idx + 1}</h3>
-
-//             {group.students.length === 0 && (
-//               <p className="no-students">No students</p>
-//             )}
-
-//             <ul className="student-list">
-//               {(group.students ?? []).map((student) => {
-//                 const studentSelected = selectedStudentId === student.id;
-
-//                 return (
-//                   <li
-//                     key={student.id}
-//                     className={`student-item ${studentSelected ? 'selected' : ''}`}
-//                     onClick={() => {
-//                       setSelectedStudentId(student.id);
-//                       setSelectedGroupId(group.id);
-//                       setCurrentStudent(student);   // or student.id
-//                     }}
-//                   >
-//                     <span className="avatar">
-//                       {student.name[0].toUpperCase()}
-//                     </span>
-//                     <span className="student-name">{student.name}</span>
-//                   </li>
-//                 );
-//               })}
-//             </ul>
-//           </section>
-//         );
-//       })}
-//     </aside>
-//   );
-// }

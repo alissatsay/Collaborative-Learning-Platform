@@ -91,6 +91,19 @@ class AssignmentView(viewsets.ModelViewSet):
             queryset = AssignmentSubmission.objects.filter(assignment__id=pk, user__id=student, is_current=True)
             serializer = SubmissionSerializer(queryset, many=True)
             return Response(serializer.data)
+    @action(detail=True)
+    def groups(self, request, pk=None):
+        student = request.GET.get('student', None)
+        # list groups for given assignment: api/assignments/<id>/groups
+        if student is not None:
+            queryset = AssignmentGroup.objects.filter(assignment__id=pk)
+            queryset = queryset.filter(users__in=[student])
+            serializer = AssignmentGroupSerializer(queryset, many=True)
+            return Response(serializer.data)
+        else:
+            queryset = AssignmentGroup.objects.filter(assignment__id=pk)
+            serializer = AssignmentGroupSerializer(queryset, many=True)
+            return Response(serializer.data)
 
 class SubmissionView(viewsets.ModelViewSet):
     serializer_class = SubmissionSerializer
