@@ -2,23 +2,20 @@ import React, { useState } from 'react';
 import '../styles/homepage.css';
 import { useNavigate } from "react-router-dom";
 
-// Test data for courses
 
-
-const HomePage = ({ role, user, coursesProp, setCurrentCourse }) => {
+const HomePage = ({ role, user, courses, setCurrentCourse }) => {
     
     const [showAddModal, setShowAddModal] = useState(false);
     const navigate = useNavigate();
     const handleSelectCourse = (course) => {
         setCurrentCourse(course);
-        navigate(`/_test/course/${course.id}`);
-
+        navigate(`/home/_test/course/${course.id}`);
     }
-  // Filter courses based on role
-  const courses = role === 'teacher'
-  // WITH GOOGLEOAUTH IMPLEMENTATION, USER.ID IS WHATEVER GOOGLE RETURNS IN THE PAYLOAD, NOT teacherId = 1
-    ? coursesProp.filter(course => course.teacherId === user.id)
-    : coursesProp.filter(course => course.students.includes(user.id));
+  // // Filter courses based on role
+  // const coursesList = role ===true
+  // // WITH GOOGLEOAUTH IMPLEMENTATION, USER.ID IS WHATEVER GOOGLE RETURNS IN THE PAYLOAD, NOT teacherId = 1
+  //   ? courses.filter(course => course.teacherId === user.id)
+  //   : courses.filter(course => course.students.includes(user.id));
 
   return (
     <div className="homepage-root">

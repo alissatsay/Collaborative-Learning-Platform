@@ -15,9 +15,10 @@ class UserSerializer(serializers.ModelSerializer):
 #
 
 class ClassSerialzer(serializers.ModelSerializer):
+    students = UserSerializer(many=True, read_only=True)
     class Meta:
         model = Class
-        fields = ('id', 'code', 'name', 'term', 'year', 'start_date', 'end_date', 'teacher')
+        fields = ('id', 'code', 'name', 'term', 'year', 'start_date', 'end_date', 'teacher', 'students')
 
 #
 # Assignment info

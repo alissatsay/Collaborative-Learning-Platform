@@ -22,7 +22,7 @@ class Class(models.Model):
     end_date = models.DateField()
     teacher = models.ForeignKey(User, on_delete=models.CASCADE, related_name='teacher_class_set')
     students = models.ManyToManyField(User, related_name='student_class_set')
-
+        
     def __str__(self):
         return f"{self.code} {self.name} {self.term}"
 
