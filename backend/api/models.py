@@ -34,7 +34,7 @@ class Assignment(models.Model):
     release_date = models.DateTimeField()
     submission_deadline = models.DateTimeField()
     commenting_deadline = models.DateTimeField()
-
+    
     def __str__(self):
         return self.name
 
@@ -75,11 +75,15 @@ class AssignmentSubmissionComment(models.Model):
         ('file', 'File'),
         ('general', 'General'),
     ]
-    comment_type = models.CharField(max_length=10, choices=type_choices)
+    comment_type = models.CharField(max_length=10, choices=type_choices, default="general")
     submission_file = models.ForeignKey(AssignmentSubmissionFile, on_delete=models.CASCADE, null=True)
     line_number = models.IntegerField(null=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     comment = models.TextField()
+    start_offset = models.PositiveIntegerField(null=True, blank=True)
+    end_offset = models.PositiveIntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Comment on submission {self.submission_id}"

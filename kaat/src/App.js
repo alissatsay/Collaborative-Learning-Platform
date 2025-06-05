@@ -3,59 +3,42 @@ import CoursePage from "./components/CoursePage";
 import AssignmentPage from "./components/AssignmentPage";
 import HomePage from "./components/HomePage";
 import AuthProvider from "./components/AuthProvider";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 
 export default function App() {
-    const coursesProp = [
-      { 
-        id: 'csc103', 
-        name: 'CSC 103', 
-        term: 'Fall 2025',
-        teacherId: 1, 
-        students: [2, 3],
-        assignments: [
-            { id: "a1", title: "Test Assignment 1", dueDate: "2025-05-28", dueTime: "23:59" },
-            { id: "a2", title: "Test Assignment 2", dueDate: "2025-05-28", dueTime: "23:59" },
-        ],
-      },
-      {
-            id: 'csc106', 
-            name: 'CSC 106',
-            term: 'Spring 2024',
-            teacherId: 1, 
-            students: [2],
-            assignments: [
-                { id: "a1", title: "Test Assignment 1", dueDate: "2025-05-28", dueTime: "23:59" },
-                { id: "a2", title: "Test Assignment 2", dueDate: "2025-05-28", dueTime: "23:59" },
-            ],
-        },
-      { 
-            id: 'csc105', 
-            name: 'CSC 105', 
-            term: 'Spring 2025',
-            teacherId: 2,
-            students: [1, 3],
-            assignments: [
-                { id: "a1", title: "Test Assignment 1", dueDate: "2025-05-28", dueTime: "23:59" },
-                { id: "a2", title: "Test Assignment 2", dueDate: "2025-05-28", dueTime: "23:59" },
-            ],
-        },
-      { 
-            id: 'csc108', 
-            name: 'CSC 108', 
-            term: 'Winter 2026',
-            teacherId: 1, 
-            students: [3],
-            assignments: [
-                { id: "a1", title: "Test Assignment 1", dueDate: "2025-05-28", dueTime: "23:59" },
-                { id: "a2", title: "Test Assignment 2", dueDate: "2025-05-28", dueTime: "23:59" },
-            ],
-        },
-    ];
-    const [fakeCourse, setFakeCourse] = useState(null);
+    const [courses, setCourses] = useState([]);
     const [currentCourse, setCurrentCourse] = useState(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [currentAssignment, setCurrentAssignment] = useState(null);
     const [user, setUser] = useState(null);
+    const [authReady, setAuthReady] = useState(false);
+
+    let endpoint;
+    useEffect(() => {
+        const saved = localStorage.getItem("myAppUser");
+        if (saved) setUser(JSON.parse(saved));
+        setAuthReady(true);
+    }, []);
+    useEffect(() => {
+        if (!user?.id) return;
+    
+        endpoint = user.is_teacher ? "teacher" : "student";
+        axios
+          .get(`http://127.0.0.1:8000/api/classes/?${endpoint}=${user.id}`)
+          .then(r => setCourses(r.data))
+          .catch(console.error);
+      }, [user]);
+    const updateCourse = (updatedCourse) => {
+    // Replace the old course object in `courses`
+    setCourses(prev => 
+      prev.map(c => (c.id === updatedCourse.id ? updatedCourse : c))
+    );
+
+    // If the updatedCourse is currently “open” in CoursePage, update that too:
+    setCurrentCourse(updatedCourse);
+  };
+  if (!authReady) return null;
     return (
         <BrowserRouter>
         <Routes>
@@ -70,31 +53,46 @@ export default function App() {
                 }
             />
             <Route
-            path="/home"
-            element={
-                <HomePage
-                role="teacher"
-                user={{name: "Kairat Sadyrbekov", id: 1}}
-                coursesProp={coursesProp}
-                setCurrentCourse={setCurrentCourse}
-                />
-            }
+                path="/home"
+                element={
+                    user            // render only when we HAVE a user
+                    ? (
+                        <HomePage
+                            role={user.is_teacher}
+                            user={user}
+                            courses={courses}
+                            setCourses={setCourses}
+                            setCurrentCourse={setCurrentCourse}
+                        />
+                        )
+                    : <Navigate to="/" replace />   // or just null
+                }
             />
             <Route
-            path="/_test/course/:courseId"
+            path="/home/_test/course/:courseId"
             element={
-                <CoursePage
-                    currentCourse={currentCourse}
-                    role="teacher"
-                    user={{name: "Kairat Sadyrbekov", id: 1}}
-                    updateCourse={setFakeCourse}
-                />
+                user
+                ? (
+                    <CoursePage
+                        currentCourse={currentCourse}
+                        setCurrentCourse={setCurrentCourse}
+                        currentAssignment={currentAssignment}
+                        setCurrentAssignment={setCurrentAssignment}
+                        role={user.is_teacher}
+                        user={user}
+                        updateCourse={updateCourse}
+                    />
+                    )
+                : <Navigate to="/" replace />
             }
             />
-
             <Route
             path="/_test/course/:courseId/:assignmentId"
-            element={<AssignmentPage />}
+            element={
+                user
+                ? <AssignmentPage currentCourse={currentCourse} setCurrentCourse={setCurrentCourse} role={user.is_teacher} user={user} />
+                : <Navigate to="/" replace />
+            }
             />
         </Routes>
         </BrowserRouter>

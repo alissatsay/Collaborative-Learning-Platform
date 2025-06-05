@@ -55,19 +55,21 @@ class AssignmentView(viewsets.ModelViewSet):
     serializer_class = AssignmentSerializer
     queryset = Assignment.objects.all()
 
-    @action(detail=True)
-    def groups(self, request, pk=None):
-        student = request.GET.get('student', None)
-        # list groups for given assignment: api/assignments/<id>/groups
-        if student is not None:
-            queryset = AssignmentGroup.objects.filter(assignment__id=pk)
-            queryset = queryset.filter(users__in=[student])
-            serializer = AssignmentGroupSerializer(queryset, many=True)
+    def list(self, request):
+        course_id = request.GET.get('course', None)
+
+        if course_id is not None:
+            # filter assignments by that course
+            qs = self.queryset.filter(course__id=course_id)
+            serializer = AssignmentSerializer(qs, many=True)
             return Response(serializer.data)
-        else:
-            queryset = AssignmentGroup.objects.filter(assignment__id=pk)
-            serializer = AssignmentGroupSerializer(queryset, many=True)
-            return Response(serializer.data)
+
+        # You can choose to return all assignments if no ?course=… is sent:
+        # serializer = AssignmentSerializer(self.queryset, many=True)
+        # return Response(serializer.data)
+
+        # …or, if you want to force the client to always specify a course:
+        return HttpResponseNotFound("Assignment(s) not found")
 
     @action(detail=True)
     def submissions(self, request, pk=None):
@@ -89,6 +91,19 @@ class AssignmentView(viewsets.ModelViewSet):
             queryset = AssignmentSubmission.objects.filter(assignment__id=pk, user__id=student, is_current=True)
             serializer = SubmissionSerializer(queryset, many=True)
             return Response(serializer.data)
+    @action(detail=True)
+    def groups(self, request, pk=None):
+        student = request.GET.get('student', None)
+        # list groups for given assignment: api/assignments/<id>/groups
+        if student is not None:
+            queryset = AssignmentGroup.objects.filter(assignment__id=pk)
+            queryset = queryset.filter(users__in=[student])
+            serializer = AssignmentGroupSerializer(queryset, many=True)
+            return Response(serializer.data)
+        else:
+            queryset = AssignmentGroup.objects.filter(assignment__id=pk)
+            serializer = AssignmentGroupSerializer(queryset, many=True)
+            return Response(serializer.data)
 
 class SubmissionView(viewsets.ModelViewSet):
     serializer_class = SubmissionSerializer
@@ -97,6 +112,9 @@ class SubmissionView(viewsets.ModelViewSet):
 class CommentsView(viewsets.ModelViewSet):
     serializer_class = CommentSerializer
     queryset = AssignmentSubmissionComment.objects.all()
+    def perform_create(self, serializer):
+        uid = self.request.data.get("user")
+        serializer.save(user_id=uid)
 
 class SubmissionFileView(viewsets.ModelViewSet):
     serializer_class = SubmissionFileSerializer

@@ -1,34 +1,10 @@
-// AuthProvider.js
-// import { GoogleLogin } from '@react-oauth/google';
-
-// export default function AuthProvider({ setIsLoggedIn, setUser }) {
-  
-//   return (
-//     <div className="login-page">
-//       <h1>Please sign in</h1>
-
-//       <GoogleLogin
-//         onSuccess={({ credential }) => {
-//           const payload = JSON.parse(atob(credential.split('.')[1]));
-//           setUser(payload);
-//           setIsLoggedIn(true);
-//         }}
-//         onError={() => console.log('Login failed')}
-//         theme="outline"
-//         size="large"
-//       />
-//     </div>
-//   );
-// }
-
 import { GoogleLogin } from "@react-oauth/google";
 import { useState } from "react";
-import "../styles/Login.css";               
+import "../styles/Login.css";
 
 export default function AuthProvider({ setUser, setIsLoggedIn }) {
   const [error, setError] = useState(null);
 
-  /* helpers unchanged … */
   const extractUser = (payload, email) => {
     if (!payload) return null;
     if (payload.results) payload = payload.results;
@@ -56,6 +32,7 @@ export default function AuthProvider({ setUser, setIsLoggedIn }) {
 
       setUser(dbUser);
       setIsLoggedIn(true);
+      localStorage.setItem("myAppUser", JSON.stringify(dbUser));
     } catch (err) {
       console.error(err);
       setError(err.message);
@@ -73,7 +50,7 @@ export default function AuthProvider({ setUser, setIsLoggedIn }) {
         <GoogleLogin
           onSuccess={handleGoogleSuccess}
           onError={() => setError("Google sign-in cancelled")}
-          theme="outline"        /* white button */
+          theme="outline"
           size="large"
           width="350"
         />

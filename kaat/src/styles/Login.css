@@ -1,17 +1,15 @@
-/* full-viewport beige background + centralised column layout */
 .login-page {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1.25rem;           /* space between title / subtitle / button */
-    background: #f9f6f1;    /* soft beige */
+    gap: 1.25rem;
+    background: #f9f6f1;
     padding: 1rem;
     text-align: center;
   }
   
-  /* headline styling */
   .brand-line {
     margin: 0;
     font-size: 1.9rem;
@@ -20,27 +18,24 @@
   }
   
   .brand {
-    color: #7d0000;         /* accent blue */
+    color: #7d0000;
   }
   
-  /* subtitle */
   .subtitle {
     margin: 0;
     font-size: 1rem;
     font-weight: 400;
-    color: #6b7280;         /* gray-500 */
+    color: #6b7280;
   }
   
-  /* keeps the Google widget centred */
   .gsi-wrapper {
     display: flex;
     justify-content: center;
   }
   
-  /* error text */
   .error {
     margin-top: 0.75rem;
     font-size: 0.875rem;
-    color: #dc2626;         /* red-600 */
+    color: #dc2626;
   }
   

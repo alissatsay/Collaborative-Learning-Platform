@@ -15,9 +15,10 @@ class UserSerializer(serializers.ModelSerializer):
 #
 
 class ClassSerialzer(serializers.ModelSerializer):
+    students = UserSerializer(many=True, read_only=True)
     class Meta:
         model = Class
-        fields = ('id', 'code', 'name', 'term', 'year', 'start_date', 'end_date', 'teacher')
+        fields = ('id', 'code', 'name', 'term', 'year', 'start_date', 'end_date', 'teacher', 'students')
 
 #
 # Assignment info
@@ -29,20 +30,25 @@ class AssignmentSerializer(serializers.ModelSerializer):
         fields = ('id', 'course', 'name', 'description', 'release_date', 'submission_deadline', 'commenting_deadline')
 
 class AssignmentGroupSerializer(serializers.ModelSerializer):
-    users = UserSerializer(many=True, read_only=True)
-
+    users = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        many=True,
+        write_only=True
+    )
+    members = UserSerializer(source="users", many=True, read_only=True)
     class Meta:
         model = AssignmentGroup
-        fields = ('id', 'assignment', 'users')
+        fields = ('id', 'assignment', 'users', 'members')   
 
 #
 # Submission info
 #
 
 class CommentSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
     class Meta:
         model = AssignmentSubmissionComment
-        fields = ('id', 'submission', 'submission_file', 'line_number', 'user', 'comment')
+        fields = ('id', 'submission', 'submission_file', 'line_number', 'user', 'comment', 'start_offset', 'end_offset', 'created_at', 'updated_at')
 
 class SubmissionFileSerializer(serializers.ModelSerializer):
     class Meta:
