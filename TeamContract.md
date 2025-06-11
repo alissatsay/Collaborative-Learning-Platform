@@ -1,14 +1,5 @@
-* ##### **Milestone 1 \-- Requirements:**
 
-* due: Wed 5/14 (11:59 pm)  
-  * a group name (Email me and also add it to the README in your git repository.)  
-  * a group gitlab repository (Invite me as a maintainer.)  
-  * a team contract (TeamContract.md in the your git repository)  
-  * a collection of user stories (As issues in your group’s git repo.)
-
-* Group Name: KAAT  
-* Gitlab Repository: [https://cs-gitlab.union.edu/aai-team/aai/-/blob/main/README.md](https://cs-gitlab.union.edu/aai-team/aai/-/blob/main/README.md)  
-* Contract:
+## **KAAT**
 
 ## **Team Contract** 
 
