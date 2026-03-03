@@ -2,3 +2,9 @@ db.sqlite3
 .venv
 .venv/
 venv/
+
+# Performance artifacts
+*.txt
+*.report.html
+k6_*.txt
+times*.txt
