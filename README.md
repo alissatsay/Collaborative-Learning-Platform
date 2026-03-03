@@ -139,3 +139,90 @@ git checkout -b feature/your-change
 3. Run locally (instructions above)
 
 4. Commit + push your branch, then open a PR
+
+## Performance & Load Testing
+
+### Backend Capacity (Local Load Test)
+
+Load tested using **k6** (ramping 1 → 100 virtual users over ~2 minutes).
+
+**Endpoints tested:**
+- `GET /api/classes/2/`
+- `GET /api/assignments/?course=2`
+
+**Environment:**
+- Local development server (`DEBUG=False`)
+- Django `runserver`
+- SQLite database
+- macOS localhost
+
+#### Results
+
+| Concurrency | Throughput | p95 Latency | Error Rate |
+|------------|------------|------------|------------|
+| 30 VUs     | ~138 req/s | ~96 ms     | 0%         |
+| 100 VUs    | ~185 req/s | ~414 ms    | 0%         |
+
+**Observations:**
+- System remained stable under 100 concurrent users.
+- Throughput increased under load while latency scaled predictably.
+- No request failures observed.
+- Latency increase at 100 VUs indicates saturation of the local dev stack (expected).
+
+---
+
+### Backend Responsiveness (Single-User Benchmark)
+
+Sequential latency measured using `curl` over 50 requests (local, `DEBUG=False`).
+
+#### `GET /api/users/?email=...`
+
+| Metric | Value |
+|--------|--------|
+| p50    | ~4.2 ms |
+| p95    | ~5.0 ms |
+| max    | ~10.4 ms |
+
+#### `GET /api/classes/2/`
+
+| Metric | Value |
+|--------|--------|
+| p50    | ~5.6 ms |
+| p95    | ~6.9 ms |
+| max    | ~7.6 ms |
+
+**Observations:**
+- Sub-10ms p95 latency under single-request conditions.
+- Low variance indicates efficient ORM queries and lightweight serialization.
+
+---
+
+### Frontend Performance (Lighthouse Audit)
+
+Audited using Chrome Lighthouse on an authenticated dashboard route (`/home`).
+
+**Environment:**
+- Localhost
+- Chrome (Incognito)
+- Production-like build
+
+#### Key Metrics
+
+| Metric | Value |
+|--------|--------|
+| Performance Score | 83 |
+| First Contentful Paint (FCP) | 0.6 s |
+| Largest Contentful Paint (LCP) | 3.9 s |
+| Total Blocking Time (TBT) | 270 ms |
+| Cumulative Layout Shift (CLS) | 0.00 |
+| Speed Index | 0.7 s |
+
+**Observations:**
+- Initial content renders quickly (FCP < 1s).
+- No layout instability (CLS = 0).
+- Main thread blocking remains under 300ms.
+- LCP reflects dynamic authenticated dashboard rendering.
+
+---
+
+> All performance measurements were conducted locally. Results may vary depending on hardware, server configuration, and production infrastructure.
