@@ -3,10 +3,10 @@
 A full-stack collaborative learning platform with a React frontend and a Django REST backend.
 
 > **Screenshots**
-> - [Screenshot placeholder: Login]
-> - [Screenshot placeholder: Student dashboard]
-> - [Screenshot placeholder: Class page]
-> - [Screenshot placeholder: Assignment page]
+<img src="Screenshots/Login.png" alt="Login" width="600">
+<img src="Screenshots/Student_dashboard.png" alt="Student Dashboard" width="600">
+<img src="Screenshots/Class_page.png" alt="Class Page" width="600">
+<img src="Screenshots/Assignment_page.png" alt="Assignment Page" width="600">
 
 ---
 
